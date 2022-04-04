@@ -1,10 +1,10 @@
 ﻿using AspNetCoreLearning.Database;
+using AspNetCoreLearning.Dtos;
 using AspNetCoreLearning.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace AspNetCoreLearning.Controllers
@@ -14,31 +14,37 @@ namespace AspNetCoreLearning.Controllers
     public class BookController : ControllerBase
     {
         private readonly ILogger<BookController> logger;
-        private readonly BookRepository repository;
+        private readonly IRepository<Book> repository;
 
-        public BookController(ILogger<BookController> logger, BookRepository repository)
+        public BookController(ILogger<BookController> logger, IRepository<Book> repository)
         {
             this.logger = logger;
             this.repository = repository;
         }
 
         [HttpGet]
-        public List<Book> GetBooks()
+        public async Task<List<Book>> GetBooks()
         {
-            return repository.Find();
+            return await repository.FindAsync();
         }
 
         [HttpGet("{id}")]
-        public Book GetBookById(string id)
+        public async Task<ActionResult<Book>> GetBookById(Guid id)
         {
-            return repository.FindById(id);
+            Book book = await repository.FindByIdAsync(id);
+
+            if (book is null)
+            {
+                return NotFound();
+            }
+
+            return book;
         }
 
         [HttpPost]
-        public Book Create(Book book)
+        public async Task<Book> Create(Book book)
         {
-            repository.Create(book);
-            return book;
+            return await repository.CreateAsync(book);
         }
     }
 }

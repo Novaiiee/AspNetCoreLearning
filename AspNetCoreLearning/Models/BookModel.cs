@@ -1,14 +1,18 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace AspNetCoreLearning.Models
 {
     public class Book
     {
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string Id { get; set; } 
+        public Guid Id { get; init; } 
+
+        [Required]
         public string Name { get; set; }
+
+        [Required]
         public decimal Price { get; set; }
     }
 }

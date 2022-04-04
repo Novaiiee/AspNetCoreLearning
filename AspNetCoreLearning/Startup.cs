@@ -1,4 +1,5 @@
 using AspNetCoreLearning.Database;
+using AspNetCoreLearning.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -9,6 +10,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -28,6 +32,7 @@ namespace AspNetCoreLearning
 
         public void ConfigureServices(IServiceCollection services)
         {
+            BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -37,11 +42,15 @@ namespace AspNetCoreLearning
 
             services.Configure<BookStoreDatabaseSettings>(Configuration.GetSection(nameof(BookStoreDatabaseSettings)));
             services.AddSingleton(x => x.GetRequiredService<IOptions<BookStoreDatabaseSettings>>().Value);
-            services.AddSingleton<BookRepository>();
-            services.AddSingleton<IMongoClient>(
-                new MongoClient(
-                    Configuration.GetSection("BookStoreDatabaseSettings")
-                        .GetValue<string>("ConnectionString")));
+
+
+            services.AddSingleton<IMongoClient>(provider =>
+            {
+                var connectionString = Configuration.GetSection("BookStoreDatabaseSettings").GetValue<string>("ConnectionString");
+                return new MongoClient(connectionString);
+            });
+
+            services.AddSingleton<IRepository<Book>, BookRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,4 +1,5 @@
-﻿using AspNetCoreLearning.Models;
+﻿using AspNetCoreLearning.Dtos;
+using AspNetCoreLearning.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
@@ -8,17 +9,20 @@ using System.Threading.Tasks;
 
 namespace AspNetCoreLearning.Database
 {
-    public class BookRepository
+    public class BookRepository : IRepository<Book>
     {
         private readonly IMongoCollection<Book> books;
+        private readonly FilterDefinitionBuilder<Book> filter;
 
         public BookRepository(BookStoreDatabaseSettings settings, IMongoClient client)
         {
-            var database = client.GetDatabase(settings.DatabaseName);
+            IMongoDatabase database = client.GetDatabase(settings.DatabaseName);
             books = database.GetCollection<Book>("Books");
+
+            filter = new FilterDefinitionBuilder<Book>();
         }
 
-        public Book Create(Book book)
+        public async Task<Book> CreateAsync(Book book)
         {
             var created = new Book
             {
@@ -26,20 +30,20 @@ namespace AspNetCoreLearning.Database
                 Price = book.Price,
             };
 
-            books.InsertOne(created);
+            await books.InsertOneAsync(created);
             return created;
         }
 
-        public List<Book> Find() =>
-            books.Find((book) => true).ToList();
+        public async Task<List<Book>> FindAsync() =>
+            (await books.FindAsync(new BsonDocument())).ToList();
 
-        public Book FindById(string id) =>
-            books.Find(book => book.Id == id).SingleOrDefault();
+        public async Task<Book> FindByIdAsync(Guid id) =>
+            (await books.FindAsync(filter.Eq(b => b.Id, id))).SingleOrDefault();
 
-        public void Update(Book Book) =>
-            books.ReplaceOne(book => book.Id == Book.Id, Book);
+        public async Task UpdateAsync(Book Book) =>
+            await books.ReplaceOneAsync(filter.Eq(b => b.Id.ToString(), Book.Id.ToString()), Book);
 
-        public void Delete(string id) =>
-            books.DeleteOne(book => book.Id == id);
+        public async Task DeleteAsync(Guid id) =>
+            await books.DeleteOneAsync(filter.Eq(b => b.Id, id));
     }
 }
